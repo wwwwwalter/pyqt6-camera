@@ -1,5 +1,6 @@
 import cv2
 import time
+import platform
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QThreadPool, QRunnable
 from PyQt6.QtGui import QImage
 
@@ -14,10 +15,28 @@ class CameraThread(QThread):
         self.running = False
         self.initialize_camera()
 
+        cv2.namedWindow("image", cv2.WINDOW_FREERATIO)
+        cv2.setWindowProperty("image", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
     def initialize_camera(self):
         try:
             # 尝试打开默认摄像头
-            self.cap = cv2.VideoCapture(0)
+            if platform.system() == 'Windows':
+                self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+            elif platform.system() == 'Linux':
+                self.cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+            self.cap.set(cv2.CAP_PROP_FPS, 30.0)
+            self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter.fourcc('M', 'J', 'P', 'G'))
+
+            # 获取FourCC
+            fourcc = int(self.cap.get(cv2.CAP_PROP_FOURCC))
+            # 将FourCC转换为对应的字符
+            fourcc_char = chr((fourcc >> 0) & 0xFF) + chr((fourcc >> 8) & 0xFF) + chr((fourcc >> 16) & 0xFF) + chr(
+                (fourcc >> 24) & 0xFF)
+            print(f"Current FourCC: {fourcc_char}")
 
             # 检查摄像头是否成功打开
             if not self.cap.isOpened():
@@ -41,7 +60,7 @@ class CameraThread(QThread):
             if ret:
 
                 QThreadPool.globalInstance().tryStart(FrameHandle(frame, self))
-                print(QThreadPool.globalInstance().activeThreadCount())
+                # print(QThreadPool.globalInstance().activeThreadCount())
 
                 # cv2.imshow("Camera", frame)
                 # cv2.waitKey(1)
