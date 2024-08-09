@@ -11,8 +11,27 @@ class CameraThread(QThread):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.cap = cv2.VideoCapture(0)  # 打开默认摄像头
         self.running = False
+        self.initialize_camera()
+
+    def initialize_camera(self):
+        try:
+            # 尝试打开默认摄像头
+            self.cap = cv2.VideoCapture(0)
+
+            # 检查摄像头是否成功打开
+            if not self.cap.isOpened():
+                raise IOError("Cannot open webcam")
+
+            # 如果摄像头成功打开，可以继续初始化其他操作
+
+
+        except IOError as e:
+            # 记录错误信息
+            print(f"Error opening camera: {e}")
+            # 提供可能的解决方案
+            print("Please check if the camera is available and not used by another application.")
+            # 可以考虑在这里添加更详细的错误处理逻辑，如重试机制
 
     def run(self):
         self.running = True
@@ -38,9 +57,17 @@ class CameraThread(QThread):
                 # elapsed_time_ms = (end_time - start_time) * 1000  # 计算耗时并转换为毫秒
                 # print(f"本轮循环耗时: {elapsed_time_ms:.2f} ms")  # 输出耗时
             else:
+                # 运行中拔掉相机
                 break
+        print("break")
+        self.cap.release()
+        print("cap release")
+        cv2.destroyAllWindows()
+        print("cv2 destroyAllWindows")
 
     def stop(self):
         self.running = False
-        self.cap.release()
         self.quit()
+        print("quit")
+        self.wait()
+        print("wait")

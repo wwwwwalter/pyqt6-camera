@@ -13,4 +13,4 @@ class FrameHandle(QRunnable):
         # 处理逻辑
         cv2.imshow("Camera", self.shared_image)
         # cv2.waitKey(100)
-        time.sleep(0.5)  # 500ms
+        time.sleep(0.1)  # 500ms
