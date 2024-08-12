@@ -11,6 +11,7 @@ class FrameHandle(QRunnable):
 
     def run(self):
         # 处理逻辑
-        cv2.imshow("image", self.shared_image)
+        # cv2.imshow("image", self.shared_image)
         # cv2.waitKey(100)
-        time.sleep(0.1)  # 500ms
+        # time.sleep(0.1)  # 500ms
+        pass

@@ -15,8 +15,8 @@ class CameraThread(QThread):
         self.running = False
         self.initialize_camera()
 
-        cv2.namedWindow("image", cv2.WINDOW_FREERATIO)
-        cv2.setWindowProperty("image", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        # cv2.namedWindow("image", cv2.WINDOW_FREERATIO)
+        # cv2.setWindowProperty("image", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
     def initialize_camera(self):
         try:
@@ -81,8 +81,8 @@ class CameraThread(QThread):
         print("break")
         self.cap.release()
         print("cap release")
-        cv2.destroyAllWindows()
-        print("cv2 destroyAllWindows")
+        # cv2.destroyAllWindows()
+        # print("cv2 destroyAllWindows")
 
     def stop(self):
         self.running = False
