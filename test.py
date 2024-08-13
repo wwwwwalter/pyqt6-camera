@@ -1,87 +1,53 @@
-import os
-import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidget, QPushButton, QVBoxLayout, QWidget, QMessageBox, QFileDialog
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtCore import Qt
-from PyQt6.QtWidgets import QInputDialog, QListWidgetItem
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QLabel
+from PyQt6.QtGui import QPixmap
+from PyQt6.QtCore import Qt
 
+class PhotoGallery(QWidget):
+    def __init__(self, photos, parent=None):
+        super().__init__(parent)
+        self.photos = photos
+        self.initUI()
 
-class ImageListApp(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("图片列表")
-        self.resize(800, 600)
+    def initUI(self):
+        main_layout = QVBoxLayout(self)
 
-        central_widget = QWidget(self)
-        layout = QVBoxLayout(central_widget)
+        # 创建一个水平布局来放置图片
+        photo_layout = QHBoxLayout()
+        photo_layout.setContentsMargins(0, 0, 0, 0)  # 设置外边距为0
+        photo_layout.setSpacing(10)  # 设置间距
 
-        self.list_widget = QListWidget(self)
-        layout.addWidget(self.list_widget)
+        # 添加图片到布局中
+        for photo_path in self.photos:
+            pixmap = QPixmap(photo_path)
+            label = QLabel(self)
+            label.setPixmap(pixmap.scaledToWidth(200))  # 调整图片大小
+            photo_layout.addWidget(label)
 
-        button_layout = QVBoxLayout()
-        add_button = QPushButton("添加图片")
-        add_button.clicked.connect(self.add_image)
-        button_layout.addWidget(add_button)
+        # 创建一个可滚动的区域
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidget(QWidget())  # 创建一个空的 QWidget 作为容器
+        scroll_area.widget().setLayout(photo_layout)  # 将图片布局设置为容器的布局
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)  # 显示水平滚动条
 
-        remove_button = QPushButton("删除图片")
-        remove_button.clicked.connect(self.remove_image)
-        button_layout.addWidget(remove_button)
-
-        edit_button = QPushButton("编辑图片")
-        edit_button.clicked.connect(self.edit_image)
-        button_layout.addWidget(edit_button)
-
-        query_button = QPushButton("查询图片")
-        query_button.clicked.connect(self.query_image)
-        button_layout.addWidget(query_button)
-
-        layout.addLayout(button_layout)
-
-        self.setCentralWidget(central_widget)
-
-    def add_image(self):
-        file_names, _ = QFileDialog.getOpenFileNames(self, "选择图片文件", "", "Images (*.png *.jpg *.jpeg)")
-        for file_name in file_names:
-            item = QListWidgetItem(file_name)
-            item.setIcon(self.create_icon(file_name))
-            self.list_widget.addItem(item)
-
-    def create_icon(self, file_name):
-        pixmap = QPixmap(file_name)
-        return pixmap.scaledToHeight(64, Qt.SmoothTransformation)
-
-    def remove_image(self):
-        selected_items = self.list_widget.selectedItems()
-        if not selected_items:
-            QMessageBox.warning(self, "警告", "请选择要删除的图片")
-            return
-
-        for item in selected_items:
-            self.list_widget.takeItem(self.list_widget.row(item))
-
-    def edit_image(self):
-        selected_items = self.list_widget.selectedItems()
-        if not selected_items:
-            QMessageBox.warning(self, "警告", "请选择要编辑的图片")
-            return
-
-        file_name, _ = QFileDialog.getOpenFileName(self, "选择图片文件", "", "Images (*.png *.jpg *.jpeg)")
-        if file_name:
-            for item in selected_items:
-                item.setText(file_name)
-                item.setIcon(self.create_icon(file_name))
-
-    def query_image(self):
-        text, ok = QInputDialog.getText(self, "查询图片", "请输入图片名称:")
-        if ok:
-            items = self.list_widget.findItems(text, Qt.MatchContains)
-            if not items:
-                QMessageBox.warning(self, "警告", "未找到匹配的图片")
-            else:
-                self.list_widget.setCurrentItem(items[0])
+        main_layout.addWidget(scroll_area)
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = ImageListApp()
-    window.show()
-    sys.exit(app.exec_())
+    app = QApplication([])
+
+    # 示例图片路径列表
+    photo_paths = [
+        "test.png",
+        "test.png",
+        "test.png",
+        "test.png",
+        "test.png",
+        "test.png",
+        "test.png",
+        "test.png"
+    ]
+
+    gallery = PhotoGallery(photo_paths)
+    gallery.show()
+
+    app.exec()

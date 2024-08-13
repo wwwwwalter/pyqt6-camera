@@ -3,10 +3,11 @@ import json
 import os
 import platform
 
+import cv2
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QDir, pyqtSlot
 from PyQt6.QtGui import QImage, QPixmap, QAction, QFontDatabase
 from PyQt6.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget, QHBoxLayout, QFrame, QMenu, QSpacerItem, \
-    QSizePolicy, QProgressDialog
+    QSizePolicy, QProgressDialog, QScrollArea
 import sys
 
 from camera_thread import CameraThread
@@ -42,6 +43,8 @@ class MainWindow(QWidget):
         self.progress_value_manager.signals.update_progress_value.connect(self.on_update_progress_value)
         self.progress_value_manager.signals.cancel_progress_dialog.connect(self.on_cancel_progress_dialog)
 
+        self.frame_list_manager.signals.add_photo_to_area.connect(self.on_add_photo_to_area)
+
         # progress dialog
         # self.progress_dialog = QProgressDialog("正在生成报告...", "取消", 0, 100, self)
         # self.progress_dialog.setWindowTitle("生成报告")
@@ -68,7 +71,6 @@ class MainWindow(QWidget):
         self.setWindowTitle('Camera')
         self.setGeometry(0, 0, 1920, 720)
         self.showFullScreen()
-        
 
         if platform.system() == 'Windows':
             self.setStyleSheet("background-color: #313438; font: 30px '宋体'; color: white;")
@@ -77,8 +79,6 @@ class MainWindow(QWidget):
             font_id = QFontDatabase.addApplicationFont("font/Noto.ttf")
             font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
             self.setStyleSheet(f"""background-color: #313438;font: 30px '{font_family}';color: white;""")
-                
-        
 
         # 设置右键菜单策略
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -126,9 +126,23 @@ class MainWindow(QWidget):
 
         # 第二层控件
         imageList_container.setStyleSheet("background-color: #1e1f22;")
-        middle_layout = QVBoxLayout()
-        middle_layout.addWidget(QLabel("图片列表"))
-        imageList_container.setLayout(middle_layout)
+        hlayout = QHBoxLayout()
+        image_label = QLabel("图像列表：")
+        hlayout.addWidget(image_label)
+        hlayout.setContentsMargins(10, 0, 0, 0)
+        image_scroll_area = QScrollArea()
+        image_scroll_area.setWidgetResizable(True)
+        image_scroll_area.setWidget(QWidget())
+        self.photo_layout = QHBoxLayout()
+        self.photo_layout.setContentsMargins(0, 0, 0, 0)
+        self.photo_layout.setSpacing(1)
+        image_scroll_area.widget().setLayout(self.photo_layout)
+        image_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        image_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        hlayout.addWidget(image_scroll_area)
+
+
+        imageList_container.setLayout(hlayout)
         imageList_container.setMaximumHeight(200)
         imageList_container.setMinimumHeight(200)
 
@@ -225,9 +239,6 @@ class MainWindow(QWidget):
     def on_clear_screen(self):
         self.probability_label.setText("AI预测概率：")
         self.suggestion_label.setText("建议：")
-        # self.signalSource_label.setText("信号源：USB")
-        # self.imageCount_label.setText(f"图像数量：0")
-        # self.reportCount_label.setText(f"报告数量：0")
 
     def load_case(self):
         self.all_case_info_dict = {}
@@ -264,3 +275,27 @@ class MainWindow(QWidget):
 
     def on_cancel_progress_dialog(self):
         self.progress_dialog.close()
+
+    def on_add_photo_to_area(self):
+        frame_info = self.frame_list_manager.get_last_frame()
+        if frame_info is not None:
+            frame = frame_info[1]
+            frame = cv2.resize(frame, (356, 200), interpolation=cv2.INTER_LINEAR)
+            # 检查图像的通道数
+            if frame.shape[2] == 3:  # BGR or RGB
+                # 将 BGR 转换为 RGB
+                rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            elif frame.shape[2] == 4:  # BGRA or RGBA
+                # 将 BGRA 转换为 RGBA
+                rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGRA2RGBA)
+            else:
+                raise ValueError("Unsupported number of channels")
+
+            # 创建 QImage
+            height, width, channel = rgb_image.shape
+            bytes_per_line = channel * width
+            q_image = QImage(rgb_image.data, width, height, bytes_per_line, QImage.Format.Format_RGB888)
+            pixmap = QPixmap.fromImage(q_image)
+            label = QLabel()
+            label.setPixmap(pixmap)
+            self.photo_layout.addWidget(label)

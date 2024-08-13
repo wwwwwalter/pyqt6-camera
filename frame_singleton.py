@@ -4,6 +4,7 @@ import cv2
 
 class Signals(QObject):
     update_image_count = pyqtSignal(int)
+    add_photo_to_area = pyqtSignal()
 
 
 class SingletonMeta(type):
@@ -27,6 +28,7 @@ class FrameListManager(metaclass=SingletonMeta):
         """添加一个新的图像帧到列表，包括名称和帧本身"""
         self.frames.append((name, frame, dframe))
         self.signals.update_image_count.emit(len(self.frames))  # 发射信号
+        self.signals.add_photo_to_area.emit()
 
     def get_frames(self):
         """获取当前所有的图像帧列表，每个元素都是(name, frame)元组"""
