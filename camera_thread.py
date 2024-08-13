@@ -7,7 +7,7 @@ from PyQt6.QtCore import Qt, QThread, pyqtSignal, QThreadPool, QRunnable, QEvent
 from PyQt6.QtGui import QImage
 
 from frame_handle_capture import FrameHandleCapture
-# from frame_handle_pdf import FrameHandlePdf
+from frame_handle_pdf import FrameHandlePdf
 from frame_handle_ai import FrameHandleAI
 from frame_singleton import FrameListManager
 from report_singleton import ReportListManager
@@ -111,7 +111,7 @@ class CameraThread(QThread):
         elif signal == 50:  # 保存照片
             QThreadPool.globalInstance().tryStart(FrameHandleCapture(self.cap))
         elif signal == 51:  # 生成报告
-            # QThreadPool.globalInstance().tryStart(FrameHandlePdf(self.cap, self.model))
+            QThreadPool.globalInstance().tryStart(FrameHandlePdf(self.cap, self.model))
             pass
         elif signal == 52:  # 保存视频
             print("保存视频")

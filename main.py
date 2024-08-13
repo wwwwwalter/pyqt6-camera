@@ -1,3 +1,4 @@
+from weasyprint import HTML
 from PyQt6.QtWidgets import QApplication
 from main_window import MainWindow
 import sys
