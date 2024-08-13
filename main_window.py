@@ -74,7 +74,6 @@ class MainWindow(QWidget):
             self.setStyleSheet("background-color: #313438; font: 30px '宋体'; color: white;")
         elif platform.system() == 'Linux':
             # 加载自定义字体
-            print("liux system")
             font_id = QFontDatabase.addApplicationFont("font/Noto.ttf")
             font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
             self.setStyleSheet(f"""background-color: #313438;font: 30px '{font_family}';color: white;""")
