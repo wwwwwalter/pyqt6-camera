@@ -44,6 +44,7 @@ class MainWindow(QWidget):
         self.progress_value_manager.signals.cancel_progress_dialog.connect(self.on_cancel_progress_dialog)
 
         self.frame_list_manager.signals.add_photo_to_area.connect(self.on_add_photo_to_area)
+        self.frame_list_manager.signals.clear_photo_area.connect(self.on_clear_photo_area)
 
         # progress dialog
         # self.progress_dialog = QProgressDialog("正在生成报告...", "取消", 0, 100, self)
@@ -299,3 +300,12 @@ class MainWindow(QWidget):
             label = QLabel()
             label.setPixmap(pixmap)
             self.photo_layout.addWidget(label)
+
+    def on_clear_photo_area(self):
+        while self.photo_layout.count():
+            item = self.photo_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+            else:
+                self.on_clear_photo_area()

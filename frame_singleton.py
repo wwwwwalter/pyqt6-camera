@@ -5,6 +5,7 @@ import cv2
 class Signals(QObject):
     update_image_count = pyqtSignal(int)
     add_photo_to_area = pyqtSignal()
+    clear_photo_area = pyqtSignal()
 
 
 class SingletonMeta(type):
@@ -38,6 +39,7 @@ class FrameListManager(metaclass=SingletonMeta):
         """清除所有图像帧"""
         self.frames.clear()
         self.signals.update_image_count.emit(0)  # 清除后发射信号
+        self.signals.clear_photo_area.emit()
 
     def get_frame_by_index(self, index):
         """根据索引获取图像帧元组 (name, frame)"""
