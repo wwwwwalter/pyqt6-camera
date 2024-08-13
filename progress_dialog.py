@@ -14,6 +14,7 @@ class CustomProgressDialog(QDialog):
         self.setFixedHeight(150) # 设置高度为100像素
 
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
 
         self.label = QLabel("正在生成报告...")
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
