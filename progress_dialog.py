@@ -11,12 +11,13 @@ class CustomProgressDialog(QDialog):
         self.setWindowModality(Qt.WindowModality.WindowModal)
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint)  # 移除标题栏
         self.setFixedWidth(600)  # 设置宽度为600像素
+        self.setFixedHeight(150) # 设置高度为100像素
 
         layout = QVBoxLayout(self)
 
-        label = QLabel("正在生成报告...")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(label)
+        self.label = QLabel("正在生成报告...")
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.label)
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 100)
@@ -35,7 +36,7 @@ class CustomProgressDialog(QDialog):
     def closeEvent(self, event):
         if self.auto_close:
             # 当关闭对话框时，可以在这里执行一些操作
-            print("自动关闭对话框")
+            # print("自动关闭对话框")
             event.accept()
         else:
             event.ignore()
@@ -48,5 +49,4 @@ class CustomProgressDialog(QDialog):
     def setValue(self, value):
         self.progress_bar.setValue(value)
         if value == 100:
-            time.sleep(1)
             self.close()

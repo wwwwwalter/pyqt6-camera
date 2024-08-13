@@ -55,8 +55,6 @@ class MainWindow(QWidget):
         # self.progress_dialog.close()
 
         self.progress_dialog = CustomProgressDialog(self)
-        self.progress_dialog.setAutoClose(True)
-        self.progress_dialog.setAutoReset(True)
 
         # 创建并启动摄像头线程
         self.camera_thread = CameraThread(self, self.model)
@@ -262,13 +260,7 @@ class MainWindow(QWidget):
         self.disease_category_num = len(self.disease_category_name)
 
     def on_show_progress_dialog(self):
-
-        self.progress_dialog.show()
-        # self.progress_dialog.open()
-        # self.progress_dialog.canceled.connect(self.on_cancel_progress_dialog)
-        # self.progress_dialog.setValue(100)
-        # self.progress_dialog.close()
-        # self.progress_dialog.deleteLater()
+        self.progress_dialog.exec()
 
     def on_update_progress_value(self, value):
         self.progress_dialog.setValue(value)
