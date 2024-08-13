@@ -14,6 +14,7 @@ from model import LightNet
 from frame_singleton import FrameListManager
 from report_singleton import ReportListManager
 from progress_singleton import ProgressValueManager
+from progress_dialog import CustomProgressDialog
 
 
 class MainWindow(QWidget):
@@ -42,16 +43,20 @@ class MainWindow(QWidget):
         self.progress_value_manager.signals.cancel_progress_dialog.connect(self.on_cancel_progress_dialog)
 
         # progress dialog
-        self.progress_dialog = QProgressDialog("正在生成报告...", "取消", 0, 100, self)
-        self.progress_dialog.setWindowTitle("生成报告")
-        self.progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
-        self.progress_dialog.setWindowFlag(Qt.WindowType.FramelessWindowHint)  # 移除标题栏
-        self.progress_dialog.setMinimumDuration(0)
-        self.progress_dialog.setValue(0)
+        # self.progress_dialog = QProgressDialog("正在生成报告...", "取消", 0, 100, self)
+        # self.progress_dialog.setWindowTitle("生成报告")
+        # self.progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        # self.progress_dialog.setWindowFlag(Qt.WindowType.FramelessWindowHint)  # 移除标题栏
+        # self.progress_dialog.setMinimumDuration(0)
+        # self.progress_dialog.setValue(0)
+        # self.progress_dialog.setAutoClose(True)
+        # self.progress_dialog.setAutoReset(True)
+        # self.progress_dialog.setFixedWidth(600)  # 设置宽度为600像素
+        # self.progress_dialog.close()
+
+        self.progress_dialog = CustomProgressDialog(self)
         self.progress_dialog.setAutoClose(True)
         self.progress_dialog.setAutoReset(True)
-        self.progress_dialog.setFixedWidth(600)  # 设置宽度为600像素
-        self.progress_dialog.close()
 
         # 创建并启动摄像头线程
         self.camera_thread = CameraThread(self, self.model)
