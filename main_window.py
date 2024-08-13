@@ -67,7 +67,7 @@ class MainWindow(QWidget):
     def init_ui(self):
         self.setWindowTitle('Camera')
         self.setGeometry(0, 0, 1920, 720)
-        # self.showFullScreen()
+        self.showFullScreen()
         
 
         if platform.system() == 'Windows':
@@ -77,8 +77,6 @@ class MainWindow(QWidget):
             print("liux system")
             font_id = QFontDatabase.addApplicationFont("font/Noto.ttf")
             font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
-            print(font_id)
-            print(font_family)
             self.setStyleSheet(f"""background-color: #313438;font: 30px '{font_family}';color: white;""")
                 
         
