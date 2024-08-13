@@ -9,14 +9,15 @@ from PyQt6.QtGui import QImage
 from frame_handle_capture import FrameHandleCapture
 from frame_handle_pdf import FrameHandlePdf
 from frame_handle_ai import FrameHandleAI
+from frame_singleton import FrameListManager
+from report_singleton import ReportListManager
 
 
 class CameraThread(QThread):
     update_ai_result = pyqtSignal(dict)
     clear_screen = pyqtSignal()
+    update_signal_source = pyqtSignal(bool)
     update_ai_switch = pyqtSignal(bool)
-    update_image_count = pyqtSignal(int)
-    update_report_count = pyqtSignal(int)
 
     def __init__(self, parent=None, model=None):
         super().__init__(parent)
@@ -26,10 +27,12 @@ class CameraThread(QThread):
         self.main_window = parent
         self.model = model
 
+        self.running = True
+        self.camera_flag = False
         self.ai_flag = True
 
-        self.running = False
-        self.initialize_camera()
+        self.frame_list_manager = FrameListManager()
+        self.report_list_manager = ReportListManager()
 
     def initialize_camera(self):
         try:
@@ -38,6 +41,10 @@ class CameraThread(QThread):
                 self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
             elif platform.system() == 'Linux':
                 self.cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+
+            # 检查摄像头是否成功打开
+            if not self.cap.isOpened():
+                raise IOError("Cannot open webcam")
 
             self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
             self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
@@ -51,22 +58,24 @@ class CameraThread(QThread):
                 (fourcc >> 24) & 0xFF)
             print(f"Current FourCC: {fourcc_char}")
 
-            # 检查摄像头是否成功打开
-            if not self.cap.isOpened():
-                raise IOError("Cannot open webcam")
-
-            # 如果摄像头成功打开，可以继续初始化其他操作
-
+            self.camera_flag = True
+            self.update_signal_source.emit(True)
 
         except IOError as e:
             # 记录错误信息
             print(f"Error opening camera: {e}")
             # 提供可能的解决方案
             print("Please check if the camera is available and not used by another application.")
+            self.update_signal_source.emit(False)
             # 可以考虑在这里添加更详细的错误处理逻辑，如重试机制
+            if self.running:
+                time.sleep(2)
+                self.initialize_camera()
 
     def run(self):
-        self.running = True
+        # 初始化相机
+        self.initialize_camera()
+
         frame_count = 0
         while self.running:
             start_time = time.time()  # 记录开始时间
@@ -77,10 +86,11 @@ class CameraThread(QThread):
                     if frame_count == 30:
                         frame_count = 0
                         QThreadPool.globalInstance().tryStart(FrameHandleAI(frame, self.model, self.main_window))
-
             else:
-                # 运行中拔掉相机
-                break
+                # 清屏
+                self.clear_screen.emit()
+                # 再次初始化相机
+                self.initialize_camera()
         print("break")
         self.cap.release()
         print("cap release")
@@ -92,9 +102,6 @@ class CameraThread(QThread):
         self.wait()
         print("wait")
 
-    def update_last_captured_image(self, name):
-        self.last_capture_pic_name = name
-
     def on_controller_signal(self, signal):
         if signal == 49:  # 开关AI
             self.ai_flag = not self.ai_flag
@@ -102,23 +109,16 @@ class CameraThread(QThread):
             if not self.ai_flag:
                 self.clear_screen.emit()
         elif signal == 50:  # 保存照片
-            QThreadPool.globalInstance().tryStart(FrameHandleCapture(self.cap,self))
-            self.image_count += 1
-            self.update_image_count.emit(self.image_count)
-
+            QThreadPool.globalInstance().tryStart(FrameHandleCapture(self.cap))
         elif signal == 51:  # 生成报告
-            QThreadPool.globalInstance().tryStart(FrameHandlePdf(self.cap, self.last_capture_pic_name))
-            self.report_count += 1
-            self.update_report_count.emit(self.report_count)
+            QThreadPool.globalInstance().tryStart(FrameHandlePdf(self.cap, self.model))
             pass
         elif signal == 52:  # 保存视频
             print("保存视频")
             pass
         elif signal == 48:  # 清零
-            self.image_count = 0
-            self.report_count = 0
-            self.update_image_count.emit(self.image_count)
-            self.update_report_count.emit(self.report_count)
+            self.frame_list_manager.clear_frames()
+            self.report_list_manager.clear_reports()
             pass
 
 # print(QThreadPool.globalInstance().activeThreadCount())

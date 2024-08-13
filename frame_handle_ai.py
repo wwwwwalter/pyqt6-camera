@@ -27,8 +27,7 @@ class FrameHandleAI(QRunnable):
 
     def classify_disease(self):
         self.frame = cv2.resize(self.frame, (0, 0), fx=0.25, fy=0.25, interpolation=cv2.INTER_NEAREST)
-        target_img = torch.from_numpy(
-            cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY).astype(np.float32).reshape((1, 1, 270, 480)))
+        target_img = torch.from_numpy(cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY).astype(np.float32).reshape((1, 1, 270, 480)))
         with torch.no_grad():
             self.model.eval()
             output = self.model(target_img)

@@ -3,6 +3,7 @@ import os
 import cv2
 import time
 from PyQt6.QtCore import QRunnable, QMetaObject, Q_ARG, Qt, QObject, pyqtSignal
+from frame_singleton import FrameListManager
 
 
 class Signals(QObject):
@@ -10,13 +11,10 @@ class Signals(QObject):
 
 
 class FrameHandleCapture(QRunnable):
-    def __init__(self, cap=None, parent=None):
+    def __init__(self, cap=None):
         super().__init__()
         self.cap = cap
-        self.parent = parent
-
-        self.signals = Signals()
-        self.signals.signal.connect(self.parent.update_last_captured_image)
+        self.frame_list_manager = FrameListManager()
 
     def run(self):
         self.capture_frame()
@@ -44,24 +42,27 @@ class FrameHandleCapture(QRunnable):
             if not self.check_path_isexist(dataset_path):
                 os.makedirs(dataset_path)
 
-                # 保存完整屏幕照片
-                cv2.imwrite(capture_path + "/" + nowtime_str + ".jpg", frame)
+            # 保存完整屏幕照片
+            cv2.imwrite(capture_path + "/" + nowtime_str + ".jpg", frame)
 
-                # 裁切中心正方形,计算裁剪区域的左上角坐标
-                start_x = (1920 - 1080) // 2 - 40
-                start_y = 0
+            # 裁切中心正方形,计算裁剪区域的左上角坐标
+            start_x = (1920 - 1080) // 2 - 40
+            start_y = 0
 
-                # 进行裁剪
-                crop_img = frame[start_y:start_y + 1080, start_x:start_x + 1080]
+            # 进行裁剪
+            dframe = frame[start_y:start_y + 1080, start_x:start_x + 1080]
 
-                # 保存裁切后的中心画面
-                cv2.imwrite(dataset_path + "/" + nowtime_str + ".jpg", crop_img)
-                print("save img " + nowtime_str + ".jpg on %s" % capture_path)
-                print("save img " + nowtime_str + ".jpg on %s" % dataset_path)
+            # 保存裁切后的中心画面
+            cv2.imwrite(dataset_path + "/" + nowtime_str + ".jpg", dframe)
+            print("save img " + nowtime_str + ".jpg on %s" % capture_path)
+            print("save img " + nowtime_str + ".jpg on %s" % dataset_path)
 
-                # 更新最新照片名
-                last_capture_pic_name = nowtime_str + ".jpg"
-                # self.signals.signal.emit(last_capture_pic_name)
+            # 把中心画面添加到列表中
+            frame_file_name = nowtime_str + ".jpg"
+            self.frame_list_manager.add_frame(frame_file_name, frame, dframe)
+
+        else:
+            print("capture frame error")
 
     def check_path_isexist(self, path_s):
         return os.path.isdir(path_s)

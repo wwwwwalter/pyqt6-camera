@@ -5,11 +5,14 @@ import os
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QDir, pyqtSlot
 from PyQt6.QtGui import QImage, QPixmap, QAction
 from PyQt6.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget, QHBoxLayout, QFrame, QMenu, QSpacerItem, \
-    QSizePolicy
+    QSizePolicy, QProgressDialog
 import sys
 
 from camera_thread import CameraThread
 from model import LightNet
+from frame_singleton import FrameListManager
+from report_singleton import ReportListManager
+from progress_singleton import ProgressValueManager
 
 
 class MainWindow(QWidget):
@@ -27,19 +30,40 @@ class MainWindow(QWidget):
         # 加载模型
         self.model = LightNet(self.disease_category_num)
 
+        # 创建单例列表
+        self.frame_list_manager = FrameListManager()
+        self.report_list_manager = ReportListManager()
+        self.progress_value_manager = ProgressValueManager()
+        self.frame_list_manager.signals.update_image_count.connect(self.on_update_image_count)
+        self.report_list_manager.signals.update_report_count.connect(self.on_update_report_count)
+        self.progress_value_manager.signals.show_progress_dialog.connect(self.on_show_progress_dialog)
+        self.progress_value_manager.signals.update_progress_value.connect(self.on_update_progress_value)
+        self.progress_value_manager.signals.cancel_progress_dialog.connect(self.on_cancel_progress_dialog)
+
+        # progress dialog
+        self.progress_dialog = QProgressDialog("正在生成报告...", "取消", 0, 100, self)
+        self.progress_dialog.setWindowTitle("生成报告")
+        self.progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        self.progress_dialog.setWindowFlag(Qt.WindowType.FramelessWindowHint)  # 移除标题栏
+        self.progress_dialog.setMinimumDuration(0)
+        self.progress_dialog.setValue(0)
+        self.progress_dialog.setAutoClose(True)
+        self.progress_dialog.setAutoReset(True)
+        self.progress_dialog.setFixedWidth(600)  # 设置宽度为600像素
+        self.progress_dialog.close()
+
         # 创建并启动摄像头线程
         self.camera_thread = CameraThread(self, self.model)
         self.controller_signal.connect(self.camera_thread.on_controller_signal)
         self.camera_thread.clear_screen.connect(self.on_clear_screen)
+        self.camera_thread.update_signal_source.connect(self.on_update_signal_source)
         self.camera_thread.update_ai_switch.connect(self.on_update_ai_switch)
-        self.camera_thread.update_image_count.connect(self.on_update_image_count)
-        self.camera_thread.update_report_count.connect(self.on_update_report_count)
         self.camera_thread.start()
 
     def init_ui(self):
         self.setWindowTitle('Camera')
-        self.setGeometry(0, 0, 1920, 1080)
-        self.showFullScreen()
+        self.setGeometry(0, 0, 1920, 720)
+        # self.showFullScreen()
         self.setStyleSheet("background-color: #313438; font: 30px '宋体'; color: white;")
 
         # 设置右键菜单策略
@@ -76,7 +100,7 @@ class MainWindow(QWidget):
         self.suggestion_label.setContentsMargins(20, 20, 20, 20)
         self.suggestion_label.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.suggestion_label.setWordWrap(True)
-        self.probability_label.setStyleSheet("background-color: #1e1f22;max-width: 400px;")
+        self.probability_label.setStyleSheet("background-color: #1e1f22;max-width: 400px;min-width: 400px;")
         self.preview_label.setStyleSheet("background-color: #1e1f22;")
         self.suggestion_label.setStyleSheet("background-color: #1e1f22")
 
@@ -97,7 +121,7 @@ class MainWindow(QWidget):
         # 第三层控件
         status_container.setStyleSheet("background-color: #1e1f22;")
         down_layout = QHBoxLayout()
-        self.signalSource_label = QLabel("信号源：HDMI")
+        self.signalSource_label = QLabel("信号源：正在初始化...")
         self.ai_switch_label = QLabel("AI开关：开")
         self.imageCount_label = QLabel("图像数量：0")
         self.reportCount_label = QLabel("报告数量：0")
@@ -109,11 +133,6 @@ class MainWindow(QWidget):
         status_container.setLayout(down_layout)
         status_container.setMaximumHeight(60)
         main_layout.addWidget(status_container)
-
-        # 定时器，用于定期更新图像
-        # self.timer = QTimer(self)
-        # self.timer.timeout.connect(self.update)
-        # self.timer.start(30)  # 每30毫秒更新一次
 
     def update_image(self, image):
         self.label.setPixmap(QPixmap.fromImage(image))
@@ -171,6 +190,12 @@ class MainWindow(QWidget):
         treatment_simplified_info = self.all_case_info_dict[name][0]['简化版建议']
         self.suggestion_label.setText(f"建议：\n{report_simplified_info}\n\n{treatment_simplified_info}")
 
+    def on_update_signal_source(self, status):
+        if status:
+            self.signalSource_label.setText(f"信号源：USB")
+        else:
+            self.signalSource_label.setText(f"信号源：无信号源")
+
     def on_update_ai_switch(self, status):
         if status:
             self.ai_switch_label.setText(f"AI开关：开")
@@ -186,10 +211,9 @@ class MainWindow(QWidget):
     def on_clear_screen(self):
         self.probability_label.setText("AI预测概率：")
         self.suggestion_label.setText("建议：")
-        self.signalSource_label.setText("信号源：HDMI")
-        self.ai_switch_label.setText(f"AI开关：关")
-        self.imageCount_label.setText(f"图像数量：0")
-        self.reportCount_label.setText(f"报告数量：0")
+        # self.signalSource_label.setText("信号源：USB")
+        # self.imageCount_label.setText(f"图像数量：0")
+        # self.reportCount_label.setText(f"报告数量：0")
 
     def load_case(self):
         self.all_case_info_dict = {}
@@ -218,4 +242,17 @@ class MainWindow(QWidget):
         # 病例名称种类个数
         self.disease_category_num = len(self.disease_category_name)
 
+    def on_show_progress_dialog(self):
 
+        self.progress_dialog.show()
+        # self.progress_dialog.open()
+        # self.progress_dialog.canceled.connect(self.on_cancel_progress_dialog)
+        # self.progress_dialog.setValue(100)
+        # self.progress_dialog.close()
+        # self.progress_dialog.deleteLater()
+
+    def on_update_progress_value(self, value):
+        self.progress_dialog.setValue(value)
+
+    def on_cancel_progress_dialog(self):
+        self.progress_dialog.close()

@@ -1,26 +1,45 @@
+import json
 import os
 
 import cv2
 import time
 import torch
 import numpy as np
+from PyQt6.QtWidgets import QProgressDialog
 from weasyprint import HTML
 from bs4 import BeautifulSoup
-from PyQt6.QtCore import QRunnable, QMetaObject, Q_ARG, Qt, QObject, QDir
+from PyQt6.QtCore import QRunnable, QDir, QObject, pyqtSignal
+
+from frame_singleton import FrameListManager
+from report_singleton import ReportListManager
+from progress_singleton import ProgressValueManager
+
 
 
 class FrameHandlePdf(QRunnable):
-    def __init__(self, cap=None, last_capture_pic_name=None, model=None):
+    def __init__(self, cap=None, model=None):
         super().__init__()
         self.frame = None
         self.cap = cap
-        self.last_capture_pic_name = last_capture_pic_name
+        self.last_capture_pic_name = ""
         self.model = model
+        self.frame_list_manager = FrameListManager()
+        self.report_list_manager = ReportListManager()
+        self.progress_value_manager = ProgressValueManager()
+
+
 
     def run(self):
-        self.generate_report()
+        self.progress_value_manager.show_progress_dialog()
+        try:
+            self.generate_report()
+        except:
+            self.progress_value_manager.cancel_progress_dialog()
+            pass
 
     def generate_report(self):
+        self.load_case()
+
         now = int(time.time())
         timeArray = time.localtime(now)
         nowtime_str = time.strftime("%Y-%m-%d-%H-%M-%S", timeArray)
@@ -29,58 +48,67 @@ class FrameHandlePdf(QRunnable):
         capture_path = "output/capture"
         pdf_path = "output/pdf"
 
-        if not self.check_path_isexist(pdf_path):
+        self.progress_value_manager.set_progress_value(10)
+
+        if not self.check_path_exist(pdf_path):
             os.makedirs(pdf_path)
+        self.progress_value_manager.set_progress_value(20)
+
+        frame_info = self.frame_list_manager.get_last_frame()
+        if frame_info is None:
+            raise Exception('未找到最新照片')
+
+        self.last_capture_pic_name = frame_info[0]
+        self.frame = frame_info[1]
+        self.dframe = frame_info[2]
+
+        self.progress_value_manager.set_progress_value(30)
+
+
 
         # 获取当天capture目录中保存的最新一张照片，用于生成pdf文件
         latest_jpg_file = capture_path + "/" + self.last_capture_pic_name
         print(f'latest_jpg_file:{latest_jpg_file}')
 
+        self.progress_value_manager.set_progress_value(40)
+
         # 获取当天dataset目录中保存的最新一张照片，用于生成pdf文件
         latest_dataset_jpg_file = dataset_path + "/" + self.last_capture_pic_name
         print(f'latest_dataset_jpg_file:{latest_dataset_jpg_file}')
 
-        # 将最新照片记录清空，防止在生成报告的同时，再次按下按钮导致的重复生成同一份报告
-        last_capture_pic_name = ""
+        self.progress_value_manager.set_progress_value(50)
 
         # 生成pdf文件名和保存路径
         pdf_file_name = self.replace_extension(os.path.basename(latest_jpg_file), 'pdf')
         pdf_file_path = pdf_path + "/" + pdf_file_name
 
-        # 到这里把pdf_gen_flag打开，在UI上显示正在生成报告文字
-        pdf_gen_flag = True
+        # 计算最新一张照片的概率
+        score = self.classify_disease()
+        # 生成最大值序列
+        disease_probability_index = np.argsort(score)[::-1]
 
-        # 读取最新一张图片，参数0表示以灰度模式读取，参数1表示以彩色模式读取
-        img = cv2.imread(latest_jpg_file, 1)
+        self.progress_value_manager.set_progress_value(60)
 
-        # 检查图片是否成功读取
-        if img is None:
-            print("Error: Could not read image")
-            return
-        else:
-            # 计算最新一张照片的概率
-            self.frame = cv2.resize(img, (0, 0), fx=0.25, fy=0.25, interpolation=cv2.INTER_NEAREST)
-            score = self.classify_disease()
-            # 生成最大值序列
-            disease_probability_index = np.argsort(score)[::-1]
 
-            # 取最大概率名称
-            name = self.disease_category_name[disease_probability_index[0]]
-            # 取最大概率报告
-            name = self.all_case_info_dict[name][0]['名称']
-            report = self.all_case_info_dict[name][0]['分析结果']
-            reason = self.all_case_info_dict[name][0]['原因']
-            complication = self.all_case_info_dict[name][0]['影响']
-            treatment = self.all_case_info_dict[name][0]['康养建议']
-            report_simplified = self.all_case_info_dict[name][0]['简化版结果']
-            treatment_simplified = self.all_case_info_dict[name][0]['简化版建议']
+        # 取最大概率名称
+        name = self.disease_category_name[disease_probability_index[0]]
+        # 取最大概率报告
+        name = self.all_case_info_dict[name][0]['名称']
+        report = self.all_case_info_dict[name][0]['分析结果']
+        reason = self.all_case_info_dict[name][0]['原因']
+        complication = self.all_case_info_dict[name][0]['影响']
+        treatment = self.all_case_info_dict[name][0]['康养建议']
 
         # 指定 HTML 文件和输出的 PDF 文件名
         html_file = 'html/html2pdf.html'
 
+
         # 读取HTML文件并使用BeautifulSoup解析
         with open(html_file, 'r', encoding='utf-8') as f:
             soup = BeautifulSoup(f.read(), 'html.parser')
+
+        self.progress_value_manager.set_progress_value(70)
+
 
         # 找到div_container标签
         div_container = soup.find('div', class_='div-container')
@@ -133,14 +161,22 @@ class FrameHandlePdf(QRunnable):
         div_result.append(paragraph_4)
         div_result.append(content_4)
 
+        self.progress_value_manager.set_progress_value(80)
+
         # 将修改后的 HTML 转换回字符串
         modified_html = str(soup)
+
+        self.progress_value_manager.set_progress_value(90)
 
         # 将 HTML 转换为 PDF
         HTML(string=modified_html, base_url='./').write_pdf(pdf_file_path)
         print(f'save pdf: {pdf_file_path}')
 
-    def check_path_isexist(self, path_s):
+        # 把pdf长文件名写入列表
+        self.report_list_manager.add_report(pdf_file_name)
+        self.progress_value_manager.set_progress_value(100)
+
+    def check_path_exist(self, path_s):
         return os.path.isdir(path_s)
 
     # 更换文件拓展名后缀
@@ -186,8 +222,7 @@ class FrameHandlePdf(QRunnable):
 
     def classify_disease(self):
         self.frame = cv2.resize(self.frame, (0, 0), fx=0.25, fy=0.25, interpolation=cv2.INTER_NEAREST)
-        target_img = torch.from_numpy(
-            cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY).astype(np.float32).reshape((1, 1, 270, 480)))
+        target_img = torch.from_numpy(cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY).astype(np.float32).reshape((1, 1, 270, 480)))
         with torch.no_grad():
             self.model.eval()
             output = self.model(target_img)
