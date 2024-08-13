@@ -1,9 +1,10 @@
 import glob
 import json
 import os
+import platform
 
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QDir, pyqtSlot
-from PyQt6.QtGui import QImage, QPixmap, QAction
+from PyQt6.QtGui import QImage, QPixmap, QAction, QFontDatabase
 from PyQt6.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget, QHBoxLayout, QFrame, QMenu, QSpacerItem, \
     QSizePolicy, QProgressDialog
 import sys
@@ -64,7 +65,20 @@ class MainWindow(QWidget):
         self.setWindowTitle('Camera')
         self.setGeometry(0, 0, 1920, 720)
         # self.showFullScreen()
-        self.setStyleSheet("background-color: #313438; font: 30px '宋体'; color: white;")
+        
+
+        if platform.system() == 'Windows':
+            self.setStyleSheet("background-color: #313438; font: 30px '宋体'; color: white;")
+        elif platform.system() == 'Linux':
+            # 加载自定义字体
+            print("liux system")
+            font_id = QFontDatabase.addApplicationFont("font/Noto.ttf")
+            font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
+            print(font_id)
+            print(font_family)
+            self.setStyleSheet(f"""background-color: #313438;font: 30px '{font_family}';color: white;""")
+                
+        
 
         # 设置右键菜单策略
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
