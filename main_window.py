@@ -4,8 +4,9 @@ import os
 import platform
 
 import cv2
+
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QDir, pyqtSlot
-from PyQt6.QtGui import QImage, QPixmap, QAction, QFontDatabase
+from PyQt6.QtGui import QImage, QPixmap, QAction, QFontDatabase, QWheelEvent
 from PyQt6.QtWidgets import QApplication, QLabel, QVBoxLayout, QWidget, QHBoxLayout, QFrame, QMenu, QSpacerItem, \
     QSizePolicy, QProgressDialog, QScrollArea
 import sys
@@ -46,6 +47,7 @@ class MainWindow(QWidget):
         self.frame_list_manager.signals.add_photo_to_area.connect(self.on_add_photo_to_area)
         self.frame_list_manager.signals.clear_photo_area.connect(self.on_clear_photo_area)
 
+
         # progress dialog
         # self.progress_dialog = QProgressDialog("正在生成报告...", "取消", 0, 100, self)
         # self.progress_dialog.setWindowTitle("生成报告")
@@ -71,7 +73,7 @@ class MainWindow(QWidget):
     def init_ui(self):
         self.setWindowTitle('Camera')
         self.setGeometry(0, 0, 1920, 720)
-        self.showFullScreen()
+        # self.showFullScreen()
 
         if platform.system() == 'Windows':
             self.setStyleSheet("background-color: #313438; font: 30px '宋体'; color: white;")
@@ -131,16 +133,18 @@ class MainWindow(QWidget):
         image_label = QLabel("图像列表：")
         hlayout.addWidget(image_label)
         hlayout.setContentsMargins(10, 0, 0, 0)
-        image_scroll_area = QScrollArea()
-        image_scroll_area.setWidgetResizable(True)
-        image_scroll_area.setWidget(QWidget())
+        self.image_scroll_area = QScrollArea()
+        self.image_scroll_area.setWidgetResizable(True)
+        self.image_scroll_area.setWidget(QWidget())
         self.photo_layout = QHBoxLayout()
         self.photo_layout.setContentsMargins(0, 0, 0, 0)
         self.photo_layout.setSpacing(1)
-        image_scroll_area.widget().setLayout(self.photo_layout)
-        image_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        image_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        hlayout.addWidget(image_scroll_area)
+        self.photo_stretch = QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        # self.photo_layout.addItem(self.photo_stretch)
+        self.image_scroll_area.widget().setLayout(self.photo_layout)
+        self.image_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.image_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        hlayout.addWidget(self.image_scroll_area)
 
 
         imageList_container.setLayout(hlayout)
@@ -278,10 +282,12 @@ class MainWindow(QWidget):
         self.progress_dialog.close()
 
     def on_add_photo_to_area(self):
+        image_width = 365
+        image_height = 200
         frame_info = self.frame_list_manager.get_last_frame()
         if frame_info is not None:
             frame = frame_info[1]
-            frame = cv2.resize(frame, (356, 200), interpolation=cv2.INTER_LINEAR)
+            frame = cv2.resize(frame, (image_width, image_height), interpolation=cv2.INTER_LINEAR)
             # 检查图像的通道数
             if frame.shape[2] == 3:  # BGR or RGB
                 # 将 BGR 转换为 RGB
@@ -299,7 +305,20 @@ class MainWindow(QWidget):
             pixmap = QPixmap.fromImage(q_image)
             label = QLabel()
             label.setPixmap(pixmap)
+
+            # 移除自由边的伸缩器
+            self.photo_layout.removeItem(self.photo_stretch)
+            # 添加新图片
             self.photo_layout.addWidget(label)
+            # 在最右边添加伸缩器
+            self.photo_layout.addItem(self.photo_stretch)
+
+            # 延时自动移动到最右端
+            QTimer.singleShot(10, self.delayed_auto_scroll)
+
+
+
+
 
     def on_clear_photo_area(self):
         while self.photo_layout.count():
@@ -309,3 +328,20 @@ class MainWindow(QWidget):
                 widget.deleteLater()
             else:
                 self.on_clear_photo_area()
+
+
+    def wheelEvent(self, a0):
+        print(a0.angleDelta())
+        numDegress = a0.angleDelta()/8
+        numSteps = int(numDegress.y()/15)*50
+        currentValue = self.image_scroll_area.horizontalScrollBar().value()
+        print(currentValue)
+        newValue  = currentValue - numSteps
+        self.image_scroll_area.horizontalScrollBar().setValue(newValue)
+
+    def delayed_auto_scroll(self):
+        print("Delayed function executed after the specified delay.")
+        self.image_scroll_area.horizontalScrollBar().setValue(self.image_scroll_area.horizontalScrollBar().maximum())
+
+
+
