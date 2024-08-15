@@ -72,8 +72,8 @@ class MainWindow(QWidget):
 
     def init_ui(self):
         self.setWindowTitle('Camera')
-        self.setGeometry(0, 0, 1920, 720)
-        # self.showFullScreen()
+        #self.setGeometry(0, 0, 1920, 720)
+        self.showFullScreen()
 
         if platform.system() == 'Windows':
             self.setStyleSheet("background-color: #313438; font: 30px '宋体'; color: white;")
@@ -81,7 +81,7 @@ class MainWindow(QWidget):
             # 加载自定义字体
             font_id = QFontDatabase.addApplicationFont("font/Noto.ttf")
             font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
-            self.setStyleSheet(f"""background-color: #313438;font: 30px '{font_family}';color: white;""")
+            self.setStyleSheet(f"""background-color: #313438;font: 35px '{font_family}';color: white;""")
 
         # 设置右键菜单策略
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
