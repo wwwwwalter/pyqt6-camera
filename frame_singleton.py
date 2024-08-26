@@ -24,12 +24,19 @@ class FrameListManager(metaclass=SingletonMeta):
     def __init__(self):
         self.signals = Signals()
         self.frames = []
+        self.count = 0
 
     def add_frame(self, name, frame, dframe):
         """添加一个新的图像帧到列表，包括名称和帧本身"""
+        # 为了节约内存，此处就不保留之前的帧了
+        self.frames.clear()
+        self.count+=1
+        # 添加新的帧数据
         self.frames.append((name, frame, dframe))
-        self.signals.update_image_count.emit(len(self.frames))  # 发射信号
-        self.signals.add_photo_to_area.emit()
+        # 向主线程发射信号
+        self.signals.update_image_count.emit(self.count)
+        # self.signals.update_image_count.emit(len(self.frames))
+        # self.signals.add_photo_to_area.emit()
 
     def get_frames(self):
         """获取当前所有的图像帧列表，每个元素都是(name, frame)元组"""
@@ -38,8 +45,9 @@ class FrameListManager(metaclass=SingletonMeta):
     def clear_frames(self):
         """清除所有图像帧"""
         self.frames.clear()
+        self.count = 0
         self.signals.update_image_count.emit(0)  # 清除后发射信号
-        self.signals.clear_photo_area.emit()
+        # self.signals.clear_photo_area.emit()
 
     def get_frame_by_index(self, index):
         """根据索引获取图像帧元组 (name, frame)"""

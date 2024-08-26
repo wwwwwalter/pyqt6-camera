@@ -81,7 +81,7 @@ class MainWindow(QWidget):
             # 加载自定义字体
             font_id = QFontDatabase.addApplicationFont("font/Noto.ttf")
             font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
-            self.setStyleSheet(f"""background-color: #313438;font: 35px '{font_family}';color: white;""")
+            self.setStyleSheet(f"""background-color: #313438;font: 30px '{font_family}';color: white;""")
 
         # 设置右键菜单策略
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -98,7 +98,7 @@ class MainWindow(QWidget):
         status_container = QFrame()
 
         main_layout.addWidget(info_container)
-        main_layout.addWidget(imageList_container)
+        # main_layout.addWidget(imageList_container)
         main_layout.addWidget(status_container)
 
         # 第一层控件
@@ -108,21 +108,18 @@ class MainWindow(QWidget):
         up_layout.setSpacing(1)
 
         self.probability_label = QLabel("AI预测概率：")
-        self.preview_label = QLabel()
         self.suggestion_label = QLabel("建议：")
 
-        self.probability_label.setContentsMargins(20, 20, 20, 20)
+        self.probability_label.setContentsMargins(20, 10, 20, 0)
         self.probability_label.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        self.suggestion_label.setContentsMargins(20, 20, 20, 20)
+        self.suggestion_label.setContentsMargins(20, 10, 20, 0)
         self.suggestion_label.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.suggestion_label.setWordWrap(True)
-        self.probability_label.setStyleSheet("background-color: #1e1f22;max-width: 400px;min-width: 400px;")
-        self.preview_label.setStyleSheet("background-color: #1e1f22;")
-        self.suggestion_label.setStyleSheet("background-color: #1e1f22")
+        self.probability_label.setStyleSheet("background-color: #1e1f22;max-width: 400px;min-width: 400px; font: 40px")
+        self.suggestion_label.setStyleSheet("background-color: #1e1f22; font: 40px")
 
         up_layout.addWidget(self.probability_label)
-        # up_layout.addWidget(self.preview_label)
         up_layout.addWidget(self.suggestion_label)
 
         info_container.setLayout(up_layout)
@@ -140,7 +137,6 @@ class MainWindow(QWidget):
         self.photo_layout.setContentsMargins(0, 0, 0, 0)
         self.photo_layout.setSpacing(1)
         self.photo_stretch = QSpacerItem(0, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        # self.photo_layout.addItem(self.photo_stretch)
         self.image_scroll_area.widget().setLayout(self.photo_layout)
         self.image_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.image_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -152,7 +148,7 @@ class MainWindow(QWidget):
         imageList_container.setMinimumHeight(200)
 
         # 第三层控件
-        status_container.setStyleSheet("background-color: #1e1f22;")
+        status_container.setStyleSheet("background-color: #1e1f22; font: 30px")
         down_layout = QHBoxLayout()
         self.signalSource_label = QLabel("信号源：正在初始化...")
         self.ai_switch_label = QLabel("AI开关：开")
@@ -216,12 +212,14 @@ class MainWindow(QWidget):
             # 添加到 disease_probability_info
             disease_probability_info += formatted_disease_name + "\t" + formatted_percentage + "\n"
 
+        # 去掉字符串最后的\n
+        disease_probability_info = disease_probability_info.rstrip("\n")
         self.probability_label.setText(f"AI预测概率：\n{disease_probability_info}")
 
         name = self.disease_category_name[disease_probability_index[0]]
         report_simplified_info = self.all_case_info_dict[name][0]['简化版结果']
         treatment_simplified_info = self.all_case_info_dict[name][0]['简化版建议']
-        self.suggestion_label.setText(f"建议：\n{report_simplified_info}\n\n{treatment_simplified_info}")
+        self.suggestion_label.setText(f"建议：\n{report_simplified_info}\n{treatment_simplified_info}")
 
     def on_update_signal_source(self, status):
         if status:
