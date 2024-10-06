@@ -1,0 +1,11 @@
+weasyprint
+beautifulsoup4
+PyQt6
+opencv-python==4.8.1.78
+torch==2.3.1
+torchvision==0.18.1
+torchaudio==2.3.1
+pillow
+numpy==1.26.4
+matplotlib
+pyinstaller

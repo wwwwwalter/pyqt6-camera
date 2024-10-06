@@ -1,0 +1,8 @@
+[Desktop Entry]
+Encoding=UTF-8
+Type=Application
+Name=ai
+Exec=bash -c 'cd ~/pyqt6-camera;bash ./start.sh'
+
+
+#Exec=lxterminal -e bash -c 'cd ~/pyqt6-camera;bash ./start.sh;$SHELL'

@@ -1,0 +1,53 @@
+[core]
+	autocrlf = true ;windows
+	;autocrlf = input ;linux
+	safecrlf = warn
+	editor = vim
+	quotepath = false
+	longpaths = true
+[color]
+	ui = true
+[user]
+	;name = Ziyi.Gao
+	;email = ziyix.gao@intel.com
+	name = Daniel Gao
+	email = 15221024927@163.com
+[alias]
+	ci = commit
+	co = checkout
+	br = branch
+
+	lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+	ss = status
+    sss = status -s
+    cs = commit -s
+    cmds = commit --amend -s
+[codecheck]
+
+[push]
+	default = current
+[credential]
+	helper = store
+
+
+
+# AutoCRLF
+# 提交时转换为LF，检出时转换为CRLF for windows
+# git config --global core.autocrlf true   
+# 提交时转换为LF，检出时不转换 for linux
+# git config --global core.autocrlf input   
+# 提交检出均不转换
+# git config --global core.autocrlf false
+
+# SafeCRLF
+# 拒绝提交包含混合换行符的文件
+# git config --global core.safecrlf true   
+# 允许提交包含混合换行符的文件
+# git config --global core.safecrlf false   
+# 提交包含混合换行符的文件时给出警告
+# git config --global core.safecrlf warn
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
