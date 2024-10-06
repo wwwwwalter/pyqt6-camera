@@ -109,6 +109,7 @@ class MainWindow(QWidget):
 
         self.probability_label = QLabel("AI预测概率：")
         self.suggestion_label = QLabel("建议：")
+        self.ai_switch = True # 用于是否显示推理信息
 
         self.probability_label.setContentsMargins(20, 10, 20, 0)
         self.probability_label.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -195,31 +196,33 @@ class MainWindow(QWidget):
 
     @pyqtSlot(dict)
     def on_update_ai_result(self, result):
+        if self.ai_switch == True:
+            disease_probability = result['disease_probability']
+            disease_probability_index = result['disease_probability_index']
 
-        disease_probability = result['disease_probability']
-        disease_probability_index = result['disease_probability_index']
+            disease_probability_info = ""
+            for i in disease_probability_index:
+                # 将概率转换为百分比形式并保留两位小数
+                formatted_percentage = f"{disease_probability[i] * 100:.2f}%"
 
-        disease_probability_info = ""
-        for i in disease_probability_index:
-            # 将概率转换为百分比形式并保留两位小数
-            formatted_percentage = f"{disease_probability[i] * 100:.2f}%"
+                # 确保疾病名称占位 4 个汉字的宽度
+                formatted_disease_name = self.disease_category_name[i]
+                if len(formatted_disease_name) < 4:
+                    formatted_disease_name += "  " * (4 - len(formatted_disease_name))
 
-            # 确保疾病名称占位 4 个汉字的宽度
-            formatted_disease_name = self.disease_category_name[i]
-            if len(formatted_disease_name) < 4:
-                formatted_disease_name += "  " * (4 - len(formatted_disease_name))
+                # 添加到 disease_probability_info
+                disease_probability_info += formatted_disease_name + "\t" + formatted_percentage + "\n"
 
-            # 添加到 disease_probability_info
-            disease_probability_info += formatted_disease_name + "\t" + formatted_percentage + "\n"
+            # 去掉字符串最后的\n
+            disease_probability_info = disease_probability_info.rstrip("\n")
+            self.probability_label.setText(f"AI预测概率：\n{disease_probability_info}")
 
-        # 去掉字符串最后的\n
-        disease_probability_info = disease_probability_info.rstrip("\n")
-        self.probability_label.setText(f"AI预测概率：\n{disease_probability_info}")
-
-        name = self.disease_category_name[disease_probability_index[0]]
-        report_simplified_info = self.all_case_info_dict[name][0]['简化版结果']
-        treatment_simplified_info = self.all_case_info_dict[name][0]['简化版建议']
-        self.suggestion_label.setText(f"建议：\n{report_simplified_info}\n{treatment_simplified_info}")
+            name = self.disease_category_name[disease_probability_index[0]]
+            report_simplified_info = self.all_case_info_dict[name][0]['简化版结果']
+            treatment_simplified_info = self.all_case_info_dict[name][0]['简化版建议']
+            self.suggestion_label.setText(f"建议：\n{report_simplified_info}\n{treatment_simplified_info}")
+        else:
+            pass
 
     def on_update_signal_source(self, status):
         if status:
@@ -230,8 +233,10 @@ class MainWindow(QWidget):
     def on_update_ai_switch(self, status):
         if status:
             self.ai_switch_label.setText(f"AI开关：开")
+            self.ai_switch = True
         else:
             self.ai_switch_label.setText(f"AI开关：关")
+            self.ai_switch = False
 
     def on_update_image_count(self, count):
         self.imageCount_label.setText(f"图像数量：{count}")
